@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow">
+  <title>no.gpurg.com</title>
+  <meta name="description" content="Interactive decision tree and automated replay showing why an incomplete, urgent, or out-of-scope request is a No.">
+  <meta name="author" content="Giulio Purgatorio">
+  <meta name="theme-color" content="#141619">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22><rect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%23ef4444%22/><text x=%2216%22 y=%2222%22 font-family=%22monospace%22 font-weight=%22900%22 font-size=%2215%22 fill=%22%23ffffff%22 text-anchor=%22middle%22>NO</text></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- Top Bar: Home on Left, Toggles on Right -->
+    <header class="top-bar" role="banner">
+      <div class="top-left">
+        <button type="button" class="tactile-btn btn-home" id="btn-reset-tree" title="Home / Reset">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 10.5L12 3l9 7.5"></path>
+            <path d="M5 9.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"></path>
+          </svg>
+          <span>Home</span>
+        </button>
+      </div>
+
+      <div class="top-right" role="toolbar" aria-label="Preferences">
+        <button type="button" class="tactile-btn btn-sm" id="btn-sfx-toggle" aria-pressed="true" title="Toggle click sound">
+          <span id="sfx-state-label">SFX: ON</span>
+        </button>
+
+        <button type="button" class="tactile-btn btn-sm" id="btn-theme-toggle" aria-pressed="false" title="Toggle Dark / Light mode">
+          <span id="theme-state-label">DARK</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Light Mode Surprise Quip (shown only in Light Mode) -->
+    <div class="light-mode-quip hidden" id="light-mode-quip" role="status">
+      <span>Wait, you actually use Light Mode? Putting on sunglasses for my retinas. 🕶️</span>
+    </div>
+
+    <!-- Auto-Replay Strip -->
+    <div class="banner-strip banner-replay hidden" id="replay-banner" role="status" aria-live="assertive">
+      <span>Replaying your request...</span>
+      <button type="button" class="tactile-btn btn-sm btn-accent" id="btn-skip-replay">
+        Skip &rarr;
+      </button>
+    </div>
+
+    <!-- Anti-Cheat Banner -->
+    <div class="banner-strip banner-fault hidden" id="cheat-banner" role="alert">
+      <span>Nice try forcing an approval in the URL. You actually have to pass the questions manually.</span>
+      <button type="button" class="tactile-btn btn-sm" id="btn-dismiss-cheat">OK</button>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-stage" id="triage-rack" role="main">
+      <!-- Audit Trace (Hidden when empty!) -->
+      <section class="trace-section hidden" id="trace-section" aria-label="Audit trace">
+        <div class="trace-header">Audit trace</div>
+        <div class="trace-list" id="trace-list"></div>
+      </section>
+
+      <!-- Active Question Card -->
+      <section class="gate-section" id="gate-section" aria-live="polite"></section>
+
+      <!-- Verdict & Interactive Gag Card -->
+      <section class="verdict-section hidden" id="verdict-section" aria-live="polite"></section>
+    </main>
+
+    <!-- Centered Clean Footer -->
+    <footer class="app-footer" role="contentinfo">
+      <button type="button" class="footer-privacy-btn" id="btn-open-privacy" aria-haspopup="dialog">
+        Privacy &amp; Legal Notice
+      </button>
+    </footer>
+  </div>
+
+  <!-- Virtual Cursor for #slug Auto-Replay -->
+  <div id="virtual-cursor" class="virtual-cursor hidden" aria-hidden="true">
+    <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 3L23 12.5L14.5 15.5L11.5 24L4 3Z" fill="#f59e0b" stroke="#111110" stroke-width="2" stroke-linejoin="round"/>
+    </svg>
+  </div>
+
+  <!-- 5-Pillar Privacy & Legal Notice Modal -->
+  <div class="modal-backdrop hidden" id="privacy-modal" role="dialog" aria-modal="true" aria-labelledby="privacy-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="privacy-modal-title" class="modal-title">Privacy &amp; Legal Notice</h2>
+        <button type="button" class="tactile-btn btn-sm" id="btn-close-privacy" aria-label="Close">
+          Close
+        </button>
+      </div>
+      <div class="modal-body" id="privacy-modal-body">
+        <article class="legal-pillar">
+          <h3>1. Privacy &amp; Data Protection (GDPR Art. 13 &amp; Art. 6(1)(f))</h3>
+          <p>
+            <code>no.gpurg.com</code> is a 100% static, client-side web application operated by <strong>Giulio Purgatorio</strong> with zero application-level personal data collection, forms transmission, analytics, or user profiling. Any input in interactive widgets remains exclusively in volatile browser memory (RAM) and is discarded upon closing the tab. Standard HTTP edge logs (IP address, User-Agent, timestamp) are processed transiently by the hosting and DNS infrastructure (GitHub Pages / GitHub, Inc. and Namecheap DNS) strictly for network security and DDoS mitigation under legitimate interest (GDPR Art. 6(1)(f)). Contact: <a href="mailto:privacy@gpurg.com">privacy@gpurg.com</a>.
+          </p>
+        </article>
+        <article class="legal-pillar">
+          <h3>2. Zero Cookies &amp; Zero Client Storage (ePrivacy Directive 2002/58/EC Art. 5(3))</h3>
+          <p>
+            This site sets <strong>zero HTTP cookies</strong> (first-party or third-party) and uses <strong>zero client-side storage mechanisms</strong> (no <code>localStorage</code>, <code>sessionStorage</code>, <code>IndexedDB</code>, or browser fingerprinting). Route state is handled solely via client-side URL hash fragments (<code>#slug</code>), which are never sent in HTTP requests per RFC 3986, exempting this site from cookie consent banners under Art. 5(3).
+          </p>
+        </article>
+        <article class="legal-pillar">
+          <h3>3. Zero Third-Party Requests (Browser-Enforced CSP)</h3>
+          <p>
+            All styles, scripts, vector graphics, and synthesized audio use self-hosted assets, native browser APIs, and system font stacks (<code>system-ui</code>, <code>ui-monospace</code>) enforced by a strict <code>Content-Security-Policy (default-src 'none')</code> and <code>no-referrer</code> policy. Your browser never initiates outbound connections to external font providers, CDNs, or third-party domains.
+          </p>
+        </article>
+        <article class="legal-pillar">
+          <h3>4. Non-Affiliation, Nominative Fair Use &amp; Credits</h3>
+          <p>
+            This site is an independent personal initiative and is not affiliated with, endorsed by, or sponsored by any past or present employer, client, academic institution, or technology vendor. All referenced trademarks and product names (including AWS, Amazon Web Services, CloudWatch, CloudTrail, Route53, S3, SQS, EventBridge, EC2, IAM, HashiCorp Terraform, Apache Kafka, and Google) belong to their respective owners and are used strictly under Nominative Fair Use to describe generic technical scenarios. Cultural references and aphorisms are used strictly as humorous rhetorical hyperbole and parody. Editorial inspiration credits: <em>nohello.net</em>, <em>dontasktoask.com</em>, and <em>xyproblem.info</em>. All code and inline SVG graphics are self-developed under the MIT License.
+          </p>
+        </article>
+        <article class="legal-pillar">
+          <h3>5. No Warranty &amp; Limitation of Liability (&ldquo;AS IS&rdquo;)</h3>
+          <p>
+            All content and interactive widgets are provided strictly <strong>&ldquo;AS IS&rdquo;</strong> for informational, educational, and portfolio/humor purposes without warranty of any kind, express or implied. Nothing on this site constitutes professional engineering, legal, or security consultancy, and the author assumes zero liability for any reliance placed on this material.
+          </p>
+        </article>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/tree.js" defer></script>
+  <script src="js/minigames.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

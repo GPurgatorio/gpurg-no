@@ -1,0 +1,4 @@
+Contact: mailto:security@gpurg.com
+Expires: 2027-06-30T10:00:00.000Z
+Preferred-Languages: en, it
+Canonical: https://no.gpurg.com/.well-known/security.txt
